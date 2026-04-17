@@ -3,6 +3,8 @@
 **Production readiness radar for AI research papers.**  
 A multi-agent system that ingests ArXiv papers, scores them for engineering utility, predicts community hype using a GRPO fine-tuned model, and surfaces hidden gems — papers worth building with that nobody is talking about yet.
 
+<img src="frontend/src/assets/demo.gif" width="800"/>
+
 ---
 
 ## What It Does
