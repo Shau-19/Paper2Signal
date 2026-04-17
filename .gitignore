@@ -1,0 +1,115 @@
+# ── Environment ──────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+venv/
+venv311/
+env/
+.venv/
+pip-wheel-metadata/
+
+# ── Database ──────────────────────────────────────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+papersignal.db*
+
+# ── Vector DB / Embeddings ────────────────────────────────────────────────────
+data/
+chroma/
+*.chroma/
+chromadb/
+
+# ── Model weights ─────────────────────────────────────────────────────────────
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+checkpoints_v*/
+hype-detector-v*/
+models/
+*.model
+saved_model/
+
+# ── Notebooks ─────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+# Keep notebooks tracked but ignore output cells
+# (remove this if you want to ignore all notebooks)
+# training/*.ipynb
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+*.log.*
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+node_modules/
+dist/
+.vite/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# ── Testing / Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Temporary / Cache ─────────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.cache
+.cache/
+tmp/
+temp/
+
+# ── HuggingFace cache ─────────────────────────────────────────────────────────
+.cache/huggingface/
+~/.cache/huggingface/
+
+# ── Dataset files (large) ─────────────────────────────────────────────────────
+hype_dataset_v*.json
+*.jsonl
+data/*.json
+
+# ── PDF cache ─────────────────────────────────────────────────────────────────
+*.pdf
+pdfs/
