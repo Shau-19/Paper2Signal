@@ -67,7 +67,8 @@ function PaperRow({ paper, onClick }) {
 export default function Today() {
   const navigate = useNavigate()
   const { setActivePaper } = useStore()
-  const { data: analyzed = [], isLoading } = useQuery({ queryKey:['analyzed'], queryFn:() => getAnalyzed(100) })
+  // const { data: analyzed = [], isLoading } = useQuery({ queryKey:['analyzed'], queryFn:() => getAnalyzed(100) })
+  const { data: analyzed = [], isLoading } = useQuery({ queryKey:['analyzed', { recent: true }], queryFn:() => getAnalyzed(100, true) })
   const { data: gems = [] }  = useQuery({ queryKey:['gems'],   queryFn: getHiddenGems })
   const { data: health }     = useQuery({ queryKey:['health'], queryFn: getHealth })
 

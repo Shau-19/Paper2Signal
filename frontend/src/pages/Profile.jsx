@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { getSessions, getHealth } from '../api/client'
+import { getSessions, getHealth, getProfile, updateProfile, getActivity } from '../api/client'
 import { useStore } from '../store/appStore'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   ORIGINAL PROFILE COMPONENT (Commented out as per instructions)
+   ─────────────────────────────────────────────────────────────────────────────
 export default function Profile() {
   const navigate = useNavigate()
   const { stack, setStack, savedPapers, buildSnippets, removeSnippet } = useStore()
@@ -37,15 +40,119 @@ export default function Profile() {
 
   return (
     <div className="page">
+      ... (original content) ...
+    </div>
+  )
+}
+───────────────────────────────────────────────────────────────────────────── */
+
+
+// ── NEW PERSISTENT USER & ACTIVITY PROFILE ─────────────────────────────────────
+
+export default function Profile() {
+  const navigate = useNavigate()
+  const { userProfile, setUserProfile, savedPapers, buildSnippets, removeSnippet } = useStore()
+  
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [formData, setFormData] = useState({
+    name: userProfile?.name || 'Shaurya',
+    email: userProfile?.email || 'shaurya@papersignal.ai',
+    role: userProfile?.role || 'Lead ML Engineer',
+    model_pref: userProfile?.preferences?.model_pref || 'auto'
+  })
+
+  // Queries
+  const { data: sessions = [] } = useQuery({ queryKey: ['sessions'], queryFn: getSessions })
+  const { data: health } = useQuery({ queryKey: ['health'], queryFn: getHealth })
+  
+  const { data: dbProfile, refetch: refetchProfile } = useQuery({ 
+    queryKey: ['profile'], 
+    queryFn: getProfile 
+  })
+  
+  const { data: activities = [], refetch: refetchActivity } = useQuery({ 
+    queryKey: ['activity'], 
+    queryFn: getActivity,
+    refetchInterval: 8000 // Automatically refresh the activity log timeline every 8s
+  })
+
+  // Sync state with DB when loaded
+  useEffect(() => {
+    if (dbProfile) {
+      setFormData({
+        name: dbProfile.name,
+        email: dbProfile.email,
+        role: dbProfile.role,
+        model_pref: dbProfile.preferences?.model_pref || 'auto'
+      })
+      setUserProfile(dbProfile)
+    }
+  }, [dbProfile, setUserProfile])
+
+  const paperSessions  = sessions.filter(s => s.session_type === 'deep')
+  const globalSessions = sessions.filter(s => s.session_type === 'global')
+
+  const handleSaveProfile = async () => {
+    try {
+      const updated = await updateProfile({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        preferences: { model_pref: formData.model_pref }
+      })
+      if (updated.status === 'success') {
+        refetchProfile()
+        refetchActivity()
+        setEditingProfile(false)
+      }
+    } catch (e) {
+      console.error("Failed to update profile", e)
+    }
+  }
+
+  const timeAgo = (ts) => {
+    if (!ts) return '—'
+    const diff = Date.now() - new Date(ts).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return 'just now'
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    if (h < 24) return `${h}h ago`
+    return `${Math.floor(h / 24)}d ago`
+  }
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'ingest':  return '📥'
+      case 'analyze': return '⚡'
+      case 'chat':    return '💬'
+      case 'index':   return '📁'
+      case 'profile': return '⚙️'
+      default:        return '📝'
+    }
+  }
+
+  const getActivityColor = (type) => {
+    switch (type) {
+      case 'ingest':  return 'var(--sg-b)'
+      case 'analyze': return 'var(--gold)'
+      case 'chat':    return 'var(--amber)'
+      case 'index':   return 'var(--text2)'
+      default:        return 'var(--text3)'
+    }
+  }
+
+  return (
+    <div className="page">
 
       {/* ── Hero ── */}
       <div className="card" style={{padding:24,marginBottom:20,display:'flex',alignItems:'center',gap:20}}>
         <div style={{width:54,height:54,borderRadius:'50%',background:'var(--gold)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--mono)',fontSize:18,fontWeight:600,color:'#0d0d0f',flexShrink:0}}>
-          PS
+          {formData.name.substring(0, 2).toUpperCase()}
         </div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:'var(--serif)',fontSize:22,color:'var(--text)',marginBottom:3}}>My Research Dashboard</div>
-          <div style={{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--text4)',marginBottom:14}}>Paper2Signal · Sessions saved locally</div>
+          <div style={{fontFamily:'var(--serif)',fontSize:22,color:'var(--text)',marginBottom:3}}>{formData.name}</div>
+          <div style={{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--text4)',marginBottom:14}}>{formData.role} · {formData.email}</div>
           <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
             {[
               {val:health?.papers_count??'—', label:'Papers indexed'},
@@ -88,39 +195,93 @@ export default function Profile() {
                 </div>
                 <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text4)'}}>{s.message_count} messages · {timeAgo(s.last_used)}</div>
               </div>
-              {s.page_index_built && (
-                <span style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--gold-l)',background:'var(--gold-p)',border:'1px solid var(--gold-bd)',padding:'1px 5px',borderRadius:3,flexShrink:0}}>Deep</span>
-              )}
             </div>
           ))}
         </div>
 
-        {/* Global sessions */}
+        {/* Account / Preferences Settings */}
         <div className="card" style={{padding:18}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <div style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>Global Chat Sessions</div>
-            <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text3)'}}>{globalSessions.length}</span>
+            <div style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>Account Settings</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setEditingProfile(!editingProfile) }}>
+              {editingProfile ? 'Cancel' : 'Edit'}
+            </button>
           </div>
-          {globalSessions.length === 0 ? (
-            <div style={{fontSize:12,color:'var(--text4)',padding:'8px 0'}}>No global chats yet — use Global Chat to start.</div>
-          ) : globalSessions.map(s => (
-            <div key={s.id} style={{display:'flex',alignItems:'center',gap:9,padding:'8px 0',borderBottom:'1px solid var(--border)',cursor:'pointer'}}
-              onClick={() => navigate('/app')}>
-              <div style={{width:28,height:28,borderRadius:6,background:'var(--surface3)',border:'1px solid var(--border2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}}>💬</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>
-                  {(s.title||'Global chat').substring(0,45)}
-                </div>
-                <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text4)'}}>{s.message_count} messages · {timeAgo(s.last_used)}</div>
+          {!editingProfile ? (
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              <div>
+                <span style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase'}}>Name</span>
+                <div style={{fontSize:13,color:'var(--text2)',marginTop:2}}>{formData.name}</div>
+              </div>
+              <div>
+                <span style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase'}}>Role</span>
+                <div style={{fontSize:13,color:'var(--text2)',marginTop:2}}>{formData.role}</div>
+              </div>
+              <div>
+                <span style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase'}}>Preferred Model</span>
+                <div style={{fontSize:13,color:'var(--text2)',marginTop:2,fontFamily:'var(--mono)'}}>{formData.model_pref.toUpperCase()}</div>
               </div>
             </div>
-          ))}
+          ) : (
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div>
+                <label style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase',display:'block',marginBottom:4}}>Name</label>
+                <input className="input" style={{fontSize:12,width:'100%'}} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
+              <div>
+                <label style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase',display:'block',marginBottom:4}}>Email</label>
+                <input className="input" style={{fontSize:12,width:'100%'}} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </div>
+              <div>
+                <label style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase',display:'block',marginBottom:4}}>Role</label>
+                <input className="input" style={{fontSize:12,width:'100%'}} value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} />
+              </div>
+              <div>
+                <label style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--text4)',textTransform:'uppercase',display:'block',marginBottom:4}}>Model Preference</label>
+                <select className="input" style={{fontSize:12,width:'100%',background:'var(--surface2)',color:'var(--text)'}} value={formData.model_pref} onChange={e => setFormData({...formData, model_pref: e.target.value})}>
+                  <option value="auto">Auto (OpenAI + Groq)</option>
+                  <option value="groq">Groq Llama-3.3-70B</option>
+                  <option value="openai">OpenAI GPT-4o-mini</option>
+                </select>
+              </div>
+              <button className="btn btn-primary btn-sm" style={{width:'100%',justifyContent:'center',marginTop:6}} onClick={handleSaveProfile}>
+                Save Settings
+              </button>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Build snippets */}
+      {/* ── Activity Timeline & Snippets col grid ── */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+        
+        {/* Recent Activity Timeline */}
         <div className="card" style={{padding:18}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <div style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>My Build</div>
+            <div style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>Recent Activity</div>
+            <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text3)'}}>Live Log</span>
+          </div>
+          {activities.length === 0 ? (
+            <div style={{fontSize:12,color:'var(--text4)',padding:'8px 0'}}>No activity logged yet. Start exploring papers!</div>
+          ) : (
+            <div style={{display:'flex',flexDirection:'column',gap:12,maxHeight:300,overflowY:'auto',paddingRight:5}}>
+              {activities.map(a => (
+                <div key={a.id} style={{display:'flex',alignItems:'flex-start',gap:10,paddingBottom:10,borderBottom:'1px solid var(--border)'}}>
+                  <div style={{fontSize:14,padding:'2px 6px',background:'var(--surface2)',borderRadius:5}}>{getActivityIcon(a.action_type)}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,color:'var(--text2)',lineHeight:1.35}}>{a.details}</div>
+                    <div style={{fontSize:9.5,fontFamily:'var(--mono)',color:'var(--text4)',marginTop:2}}>{timeAgo(a.timestamp)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Build Snippets */}
+        <div className="card" style={{padding:18}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+            <div style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>Saved Build Snippets</div>
             <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--text3)'}}>{buildSnippets.length} snippets</span>
           </div>
           {buildSnippets.length === 0 ? (
@@ -145,45 +306,6 @@ export default function Profile() {
           ))}
         </div>
 
-        {/* Tech stack */}
-        <div className="card" style={{padding:18}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <div style={{fontSize:13.5,fontWeight:600,color:'var(--text)'}}>Tech Stack</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setEditingStack(!editingStack); setLocalStack(stack) }}>
-              {editingStack ? 'Cancel' : 'Edit'}
-            </button>
-          </div>
-          {!editingStack ? (
-            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-              {stack.map(s => (
-                <span key={s} style={{fontFamily:'var(--mono)',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text2)',padding:'3px 9px',borderRadius:4}}>
-                  {s}
-                </span>
-              ))}
-              {stack.length === 0 && <div style={{fontSize:12,color:'var(--text4)'}}>No stack set — click Edit to add technologies.</div>}
-            </div>
-          ) : (
-            <>
-              <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:12}}>
-                {localStack.map((s,i) => (
-                  <span key={i} style={{fontFamily:'var(--mono)',fontSize:10,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text2)',padding:'3px 9px',borderRadius:4,display:'flex',alignItems:'center',gap:5}}>
-                    {s}
-                    <span style={{cursor:'pointer',color:'var(--red)',fontSize:13,lineHeight:1}} onClick={() => setLocalStack(prev => prev.filter((_,j) => j!==i))}>×</span>
-                  </span>
-                ))}
-              </div>
-              <div style={{display:'flex',gap:6,marginBottom:10}}>
-                <input className="input" style={{fontSize:12}} placeholder="Add technology..."
-                  value={stackInput} onChange={e => setStackInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addStackItem()} />
-                <button className="btn btn-ghost btn-sm" onClick={addStackItem}>Add</button>
-              </div>
-              <button className="btn btn-primary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={saveStack}>
-                Save Stack
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Sentinel info */}

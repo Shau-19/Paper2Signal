@@ -15,10 +15,12 @@ Key improvements:
   8. Numbered list boost in RRF (catches problem/limitation answers)
   9. LLM-as-judge (optional, Groq, logs poor retrievals)
   10. PDF build failure resilience — explicit meta tensor fix
+  11. FIX: duplicate pre-delete now uses limit=10000 so where filter works
+  12. Chain retrieval for implement/math intents — pulls prev/next chunks
+      in same section for execution continuity
+  13. Section boost for implement/math/results — boosts relevant sections
+      before RRF so the right content ranks first
 
-Install:
-  pip install pymupdf sentence-transformers --break-system-packages
-  # cross-encoder model auto-downloads ~85MB on first run
 """
 
 import re
@@ -339,17 +341,22 @@ def _build_section_summaries(chunks: list[dict], paper_id: str) -> list[dict]:
     return summaries
 
 
-# ── Store — fixed duplicate bug ───────────────────────────────────────────────
+# ── Store — FIX: use limit=10000 so where filter actually works ───────────────
 
 def _store(all_chunks: list[dict], paper_id: str):
     """
-    FIX: delete existing chunks by ID list (where-filter was silently failing,
-    causing the 'Add of existing embedding ID' spam and retrieval pollution).
+    FIX: ChromaDB's where filter on get() silently returns nothing without
+    a limit parameter. Adding limit=10000 ensures existing chunks are found
+    and deleted before re-indexing, eliminating the duplicate ID spam and
+    retrieval pollution from doubled embeddings.
     """
     collection = get_pdf_collection()
 
     try:
-        existing = collection.get(where={"paper_id": paper_id})
+        existing = collection.get(
+            where={"paper_id": paper_id},
+            limit=10000,   # ← THE FIX: without this, where filter returns nothing
+        )
         if existing and existing.get("ids"):
             collection.delete(ids=existing["ids"])
             logger.info(f"[PDFIndex] Cleared {len(existing['ids'])} old chunks for {paper_id}")
@@ -454,6 +461,118 @@ def _detect_named_entities(query: str) -> list[str]:
     camel  = re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', query)
     acronm = re.findall(r'\b[A-Z]{2,}\b', query)
     return list(set(camel + acronm))
+
+
+# ── Section boosts per intent ─────────────────────────────────────────────────
+# Sections that should rank first for each intent type.
+# Matching is case-insensitive substring so "4.1 Method" matches "Method".
+
+SECTION_BOOSTS: dict[str, list[str]] = {
+    "implement": [
+        "Method", "Algorithm", "Architecture", "Framework",
+        "Pipeline", "System", "Approach", "Implementation",
+    ],
+    "math": [
+        "Preliminaries", "Notation", "Background", "Method",
+        "Proof", "Theorem", "Derivation", "Analysis",
+    ],
+    "results": [
+        "Experiments", "Results", "Evaluation", "Ablation",
+        "Benchmark", "Performance", "Comparison",
+    ],
+    "formula": [
+        "Method", "Preliminaries", "Notation", "Background",
+        "Derivation", "Objective", "Loss",
+    ],
+}
+
+
+def _apply_section_boost(
+    sem_ids:   list[str],
+    chunk_map: dict,
+    intent:    str,
+) -> list[str]:
+    """
+    Move chunks from boosted sections to the front of the semantic ranking
+    before RRF so they have a higher chance of surviving into final results.
+    Everything else stays in original order — no items removed.
+    """
+    boost_sections = SECTION_BOOSTS.get(intent, [])
+    if not boost_sections:
+        return sem_ids
+
+    boosted = []
+    rest    = []
+    for cid in sem_ids:
+        section = chunk_map.get(cid, (None, {}, 0))[1].get("section", "")
+        if any(b.lower() in section.lower() for b in boost_sections):
+            boosted.append(cid)
+        else:
+            rest.append(cid)
+
+    promoted = boosted + rest
+    if boosted:
+        logger.info(f"[PDFIndex] Section boost ({intent}): promoted {len(boosted)} chunks from {boost_sections}")
+    return promoted
+
+
+# ── Chain retrieval — prev/next chunks in same section ────────────────────────
+
+def _get_chain_chunks(
+    selected_cids: list[str],
+    all_cid_list:  list[str],
+    chunk_map:     dict,
+    max_extra:     int = 4,
+) -> list[str]:
+    """
+    For each selected chunk, pull the immediately preceding and following
+    chunk within the same section. This provides execution/derivation
+    continuity that isolated top-k retrieval misses.
+
+    Only adds chunks not already in selected_cids.
+    Respects section boundaries — no cross-section leakage.
+    """
+    selected_set = set(selected_cids)
+    extra: list[str] = []
+
+    for cid in selected_cids:
+        if cid not in chunk_map:
+            continue
+        section = chunk_map[cid][1].get("section", "")
+
+        try:
+            idx = all_cid_list.index(cid)
+        except ValueError:
+            continue
+
+        # Previous chunk in same section
+        if idx > 0:
+            prev_cid = all_cid_list[idx - 1]
+            if (
+                prev_cid not in selected_set
+                and prev_cid in chunk_map
+                and chunk_map[prev_cid][1].get("section", "") == section
+            ):
+                extra.append(prev_cid)
+                selected_set.add(prev_cid)
+
+        # Next chunk in same section
+        if idx < len(all_cid_list) - 1:
+            next_cid = all_cid_list[idx + 1]
+            if (
+                next_cid not in selected_set
+                and next_cid in chunk_map
+                and chunk_map[next_cid][1].get("section", "") == section
+            ):
+                extra.append(next_cid)
+                selected_set.add(next_cid)
+
+        if len(extra) >= max_extra:
+            break
+
+    if extra:
+        logger.info(f"[PDFIndex] Chain retrieval: added {len(extra)} neighboring chunks")
+    return extra
 
 
 # ── RRF with boosts ───────────────────────────────────────────────────────────
@@ -604,17 +723,20 @@ async def retrieve_context(
     n:           int  = 10,
     paper_title: str  = "",
     run_judge:   bool = False,
+    intent:      str  = "discuss",   # NEW: passed from rag.py for section boost + chain retrieval
 ) -> tuple[str, list[dict]]:
     """
     Full retrieval pipeline:
       1. Query expansion
       2. Semantic search (fetch 3× candidates)
-      3. BM25 over candidate pool
-      4. RRF merge with list/entity/figure boosts
-      5. Cross-encoder rerank (2n → n)
-      6. Sort by section order (reads like the paper)
-      7. Return CLEAN context (no label prefix noise for LLM)
-      8. Optional LLM-as-judge
+      3. Section boost — move intent-relevant sections to front (NEW)
+      4. BM25 over candidate pool
+      5. RRF merge with list/entity/figure boosts
+      6. Cross-encoder rerank (2n → n)
+      7. Chain retrieval — add prev/next chunks in same section (NEW)
+      8. Sort by section order (reads like the paper)
+      9. Return CLEAN context (no label prefix noise for LLM)
+      10. Optional LLM-as-judge
     """
     loop = asyncio.get_event_loop()
 
@@ -649,6 +771,9 @@ async def retrieve_context(
             chunk_map[cid] = (doc, meta, dists[i] if i < len(dists) else 1.0)
             sem_ids.append(cid)
 
+        # ── Section boost: promote intent-relevant sections before RRF ────────
+        sem_ids = _apply_section_boost(sem_ids, chunk_map, intent)
+
         # BM25 over candidate pool (uses clean raw_text, not labeled embedding text)
         cid_list  = list(chunk_map.keys())
         raw_texts = [chunk_map[c][1].get("raw_text", chunk_map[c][0][:500]) for c in cid_list]
@@ -661,6 +786,11 @@ async def retrieve_context(
         # Cross-encoder rerank: 2n candidates → n
         reranked = _rerank(query, merged[:n * 2], chunk_map, top_n=n)
 
+        # ── Chain retrieval: pull neighboring chunks for implement/math ────────
+        if intent in ("implement", "math", "formula"):
+            chain_extras = _get_chain_chunks(reranked, cid_list, chunk_map, max_extra=4)
+            reranked = reranked + chain_extras
+
         # Sort by section order for coherent reading flow
         final = sorted(
             [(cid, chunk_map[cid]) for cid in reranked if cid in chunk_map],
@@ -668,7 +798,6 @@ async def retrieve_context(
         )
 
         # Build CLEAN context — use raw_text_ctx (with overlap) NOT labeled embedding text
-        # This is the critical fix for context leakage ([SECTION | Page N] noise in LLM answers)
         context_parts: list[str]  = []
         citations:     list[dict] = []
         seen_sections: set        = set()
@@ -681,7 +810,6 @@ async def retrieve_context(
             section = meta.get("section", "")
 
             # Use overlap-aware context for LLM (raw_text_ctx)
-            # Fall back to raw_text if not present
             clean = meta.get("raw_text_ctx", meta.get("raw_text", ""))
 
             # Prepend section header as readable annotation (not a label artifact)
@@ -699,7 +827,7 @@ async def retrieve_context(
 
         context_text = "\n\n".join(context_parts)
         logger.info(
-            f"[PDFIndex] {len(context_parts)} chunks | "
+            f"[PDFIndex] {len(context_parts)} chunks | intent={intent} | "
             f"expanded={expanded_query != query} | query: {query[:50]}"
         )
         return context_text, citations, context_text

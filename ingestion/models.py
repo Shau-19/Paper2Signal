@@ -148,6 +148,31 @@ class ClusterRun(Base):
     noise_papers: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), default="ML Researcher")
+    email: Mapped[str] = mapped_column(String(100), default="researcher@papersignal.com")
+    role: Mapped[str] = mapped_column(String(100), default="Senior ML Engineer")
+    preferences: Mapped[dict] = mapped_column(JSON, default=lambda: {
+        "theme": "dark",
+        "model_pref": "auto",
+        "alert_threshold": 7.0
+    })
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserActivity(Base):
+    __tablename__ = "user_activities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "ingest", "analyze", "chat", "index"
+    details: Mapped[str] = mapped_column(Text, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 async def init_db():
     """Create all tables. Safe to call on every startup."""
     async with engine.begin() as conn:

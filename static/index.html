@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper2Signal — Understand Research. Build with It.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,900;1,400;1,600&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#09090a;--ink2:#111113;--ink3:#1c1c1f;
+  --paper:#f8f5ef;--paper2:#f0ece3;--paper3:#e5e0d5;--paper4:#cdc9bd;
+  --gold:#b8955a;--gold-l:#d4b07a;--gold-p:rgba(184,149,90,.12);
+  --sg:#2e9e60;--sg-p:rgba(46,158,96,.1);--sg-b:#3dba72;
+  --amber:#c07820;--red:#b03838;--red-p:rgba(176,56,56,.1);
+  --muted:#7a7870;--muted2:#55544f;--muted3:#3a3936;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Syne',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--ink);color:var(--paper);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+
+/* ══════════════════════════════════════════
+   CINEMATIC INTRO
+══════════════════════════════════════════ */
+#intro{
+  position:fixed;inset:0;z-index:8000;
+  background:var(--ink);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:opacity .9s ease;
+  overflow:hidden;
+}
+#intro.out{opacity:0;pointer-events:none}
+
+/* scanlines */
+#intro::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.012) 2px,rgba(255,255,255,.012) 3px);
+  pointer-events:none;z-index:1;
+}
+/* vignette */
+#intro::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.75) 100%);
+  pointer-events:none;z-index:1;
+}
+
+.intro-glow{
+  position:absolute;
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(184,149,90,.07) 0%,transparent 70%);
+  border-radius:50%;
+  pointer-events:none;
+  animation:glowPulse 4s ease-in-out infinite;
+}
+@keyframes glowPulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.15);opacity:1}}
+
+/* STAGE 1: quote */
+#stage-quote{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:3rem;z-index:2;
+  opacity:0;transition:opacity .8s ease;
+  text-align:center;
+}
+#stage-quote.show{opacity:1}
+.q-mark{font-family:var(--serif);font-size:60px;color:rgba(255,255,255,.06);line-height:1;margin-bottom:20px}
+.q-text{
+  font-family:var(--serif);
+  font-size:clamp(1.1rem,2.4vw,1.55rem);
+  font-style:italic;
+  color:rgba(248,245,239,.65);
+  max-width:580px;
+  line-height:1.8;
+  margin-bottom:18px;
+  letter-spacing:.01em;
+}
+.q-attr{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:rgba(248,245,239,.2)}
+
+/* STAGE 2: wordmark */
+#stage-logo{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:2;
+  opacity:0;transition:opacity .8s ease;
+}
+#stage-logo.show{opacity:1}
+.intro-wordmark{
+  font-family:var(--serif);
+  font-size:clamp(3.5rem,9vw,7.5rem);
+  font-weight:400;color:#fff;
+  letter-spacing:-.025em;
+  position:relative;overflow:hidden;
+  line-height:1;
+}
+.intro-wordmark::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,.5) 50%,transparent 80%);
+  transform:translateX(-120%);
+  transition:transform 1.1s ease;
+}
+.intro-wordmark.shine::after{transform:translateX(120%)}
+.intro-tagline{
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:.28em;text-transform:uppercase;
+  color:rgba(255,255,255,.2);margin-top:18px;
+}
+.intro-models{
+  display:flex;align-items:center;gap:18px;
+  margin-top:32px;opacity:0;
+  transition:opacity .6s ease .3s;
+}
+#stage-logo.show .intro-models{opacity:1}
+.im-item{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.18);display:flex;align-items:center;gap:7px}
+.im-dot{width:4px;height:4px;border-radius:50%;background:rgba(184,149,90,.4)}
+.intro-skip{
+  position:absolute;bottom:28px;right:36px;z-index:3;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.18);
+  transition:color .2s;
+}
+#intro:hover .intro-skip{color:rgba(255,255,255,.4)}
+
+/* loading bar */
+.intro-bar{
+  position:absolute;bottom:0;left:0;
+  height:1px;background:var(--gold);
+  width:0%;transition:width linear;
+  z-index:3;opacity:.4;
+}
+
+/* ══════════════════════════════════════════
+   NAV
+══════════════════════════════════════════ */
+#main-content{opacity:0;transition:opacity .8s ease}
+#main-content.show{opacity:1}
+/* Nav also hidden until intro done since it's inside main-content */
+
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:700;
+  padding:18px 52px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(9,9,10,.82);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:30px;height:30px;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:13px;height:13px;stroke:var(--gold);fill:none;stroke-width:2}
+.logo-name{font-family:var(--serif);font-size:16px;color:var(--paper)}
+.nav-r{display:flex;align-items:center;gap:28px}
+.nav-a{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s}
+.nav-a:hover{color:var(--paper)}
+.nav-btn{padding:9px 22px;border:1.5px solid rgba(184,149,90,.45);color:var(--gold);font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;transition:all .2s;background:transparent}
+.nav-btn:hover{background:var(--gold);color:var(--ink)}
+
+/* ══════════════════════════════════════════
+   HERO — full width, text only
+══════════════════════════════════════════ */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  justify-content:center;
+  padding:140px 52px 100px;
+  position:relative;overflow:hidden;
+}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 20% 50%,rgba(184,149,90,.065) 0%,transparent 60%),radial-gradient(ellipse 50% 55% at 85% 75%,rgba(46,158,96,.04) 0%,transparent 55%);pointer-events:none}
+.hero-gl{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(ellipse at 30% 50%,black 10%,transparent 68%);pointer-events:none}
+
+.hero-left{position:relative;z-index:1;max-width:780px}
+.hero-badge{display:inline-flex;align-items:center;gap:9px;padding:6px 14px;border:1px solid rgba(46,158,96,.3);background:rgba(46,158,96,.07);margin-bottom:28px;opacity:0;animation:slideUp .7s ease .1s both}
+.bdot{width:5px;height:5px;border-radius:50%;background:var(--sg-b);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btxt{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--sg-b)}
+
+.hero-h1{
+  font-family:var(--serif);
+  font-size:clamp(3rem,6vw,5.5rem);
+  font-weight:600;line-height:1.06;
+  letter-spacing:-.03em;
+  margin-bottom:26px;
+  opacity:0;animation:slideUp .8s ease .25s both;
+}
+.hero-h1 em{font-style:italic;color:var(--gold-l)}
+.hero-h1 .l3{display:block;color:var(--paper)}
+
+.hero-p{
+  font-size:16px;line-height:2;
+  color:rgba(248,245,239,.55);
+  max-width:640px;margin-bottom:42px;
+  opacity:0;animation:slideUp .8s ease .4s both;
+}
+.hero-p br+br{display:block;content:'';margin-top:4px}
+.hero-p strong{color:rgba(248,245,239,.85);font-weight:500}
+.hero-p strong{color:var(--paper);font-weight:600}
+
+.hero-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;opacity:0;animation:slideUp .8s ease .52s both}
+.btn-hero{padding:13px 30px;background:var(--gold);color:var(--ink);font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .22s}
+.btn-hero:hover{background:var(--gold-l);transform:translateY(-2px);box-shadow:0 8px 24px rgba(184,149,90,.25)}
+.btn-hero svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
+.btn-ghost{padding:13px 24px;background:transparent;color:rgba(248,245,239,.5);font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(255,255,255,.1);cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-ghost:hover{color:var(--paper);border-color:rgba(255,255,255,.22)}
+
+.hero-trust{margin-top:36px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;opacity:0;animation:slideUp .8s ease .66s both}
+.ts{width:1px;height:22px;background:rgba(255,255,255,.08)}
+.ti{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ti strong{color:rgba(248,245,239,.45);font-weight:500}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* hero right — score card */
+.hero-right{position:relative;z-index:1;display:flex;justify-content:center;align-items:center;opacity:0;animation:slideUp .9s ease .38s both}
+.score-demo{width:100%;max-width:400px;background:rgba(255,255,255,.032);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.sd-bar{height:2px;background:linear-gradient(90deg,var(--gold),var(--sg-b));opacity:.35}
+.sd-head{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.sd-title{font-size:12px;font-weight:500;color:var(--paper);line-height:1.4;flex:1}
+.sd-score-box{flex-shrink:0;text-align:center}
+.sd-num{font-family:var(--serif);font-size:34px;font-weight:600;color:var(--sg-b);line-height:1}
+.sd-slbl{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--sg);margin-top:2px}
+.sd-verdict{padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px}
+.vbadge{padding:4px 10px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0}
+.vb-adopt{background:rgba(46,158,96,.12);border:1px solid rgba(46,158,96,.28);color:var(--sg-b)}
+.vb-expt{background:rgba(192,120,32,.1);border:1px solid rgba(192,120,32,.28);color:#e09535}
+.vb-watch{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
+.vtext{font-size:11px;color:rgba(248,245,239,.48);line-height:1.55;flex:1}
+.sd-dims{padding:14px 20px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.dr{display:flex;align-items:center;gap:10px}
+.dl{font-family:var(--mono);font-size:9px;color:var(--muted);width:90px;flex-shrink:0}
+.dt{flex:1;height:2px;background:rgba(255,255,255,.07)}
+.df{height:2px;transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+.dv{font-family:var(--mono);font-size:9px;color:var(--muted);width:20px;text-align:right;flex-shrink:0}
+.sd-chat{padding:14px 20px;display:flex;flex-direction:column;gap:8px}
+.sc-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin-bottom:2px}
+.sc-msg{padding:8px 11px;font-size:11px;line-height:1.6;border:1px solid rgba(255,255,255,.06)}
+.sc-msg.ai{background:rgba(255,255,255,.025);color:rgba(248,245,239,.6)}
+.sc-msg.u{background:rgba(46,158,96,.08);border-color:rgba(46,158,96,.18);color:rgba(248,245,239,.7);align-self:flex-end;max-width:85%}
+.sc-inp{display:flex;gap:8px;margin-top:4px}
+.sc-field{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:8px 11px;font-family:var(--mono);font-size:10px;color:rgba(248,245,239,.3)}
+.sc-btn{padding:8px 14px;background:var(--gold);border:none;cursor:default;display:flex;align-items:center}
+.sc-btn svg{width:11px;height:11px;stroke:var(--ink);fill:none;stroke-width:2.5}
+
+/* ── TRANSITION ── */
+.dark-to-light{background:linear-gradient(to bottom,var(--ink) 0%,var(--paper) 100%);height:140px}
+
+/* ══════════════════════════════════════════
+   SPLIT VIEW — paper left, chat right
+══════════════════════════════════════════ */
+.split-sec{
+  background:var(--paper);
+  padding:0 52px 100px;
+}
+.split-label-row{
+  padding:56px 0 40px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;
+  border-bottom:1px solid var(--paper3);
+  margin-bottom:0;
+}
+.split-headline{font-family:var(--serif);font-size:clamp(2.2rem,3.5vw,3.2rem);font-weight:600;color:var(--ink);letter-spacing:-.03em;line-height:1.1;max-width:640px}
+.split-headline em{font-style:italic;color:var(--gold)}
+.split-sub{font-size:13px;color:var(--muted2);line-height:1.8;max-width:340px;text-align:right}
+
+.split-frame{
+  display:grid;
+  grid-template-columns:1fr 400px;
+  height:580px;
+  border:1px solid var(--paper3);
+  border-top:none;
+  overflow:hidden;
+}
+
+/* PDF side */
+.split-pdf{
+  border-right:1px solid var(--paper3);
+  background:var(--paper2);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.split-pdf-bar{
+  padding:10px 16px;
+  background:var(--paper);
+  border-bottom:1px solid var(--paper3);
+  display:flex;align-items:center;gap:10px;
+  flex-shrink:0;
+}
+.spb-dots{display:flex;gap:5px}
+.spb-dot{width:9px;height:9px;border-radius:50%}
+.spb-dot.r{background:#ff6058}.spb-dot.y{background:#febc2e}.spb-dot.g{background:#28c840}
+.spb-title{font-family:var(--mono);font-size:9.5px;color:var(--muted2);letter-spacing:.06em;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spb-score{font-family:var(--mono);font-size:9px;padding:2px 8px;background:rgba(46,158,96,.1);border:1px solid rgba(46,158,96,.2);color:var(--sg);flex-shrink:0}
+/* fake PDF content */
+.pdf-mock{flex:1;overflow:hidden;padding:28px 32px;display:flex;flex-direction:column;gap:14px}
+.pm-authors{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.06em;text-align:center}
+.pm-title-big{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink);text-align:center;line-height:1.4;margin-bottom:4px}
+.pm-divider{height:1px;background:var(--paper3);margin:6px 0}
+.pm-section-lbl{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
+.pm-body{display:flex;flex-direction:column;gap:5px}
+.pm-line{height:8px;background:var(--paper3);border-radius:2px}
+.pm-line.short{width:70%}
+.pm-line.med{width:85%}
+.pm-line.full{width:100%}
+.pm-line.half{width:50%}
+.pm-highlight{
+  background:rgba(184,149,90,.12);border:1px solid rgba(184,149,90,.2);
+  padding:8px 12px;margin:6px 0;
+}
+.pm-highlight-line{height:8px;background:rgba(184,149,90,.25);border-radius:2px;margin-bottom:4px}
+.pm-highlight-line:last-child{width:60%;margin-bottom:0}
+.pm-formula{
+  font-family:var(--mono);font-size:10px;color:var(--muted2);
+  text-align:center;padding:8px;
+  background:var(--paper);border:1px solid var(--paper3);
+}
+.pdf-page-bar{
+  padding:8px 16px;
+  background:var(--paper);border-top:1px solid var(--paper3);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.ppb-nav{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.ppb-btn{width:18px;height:18px;border:1px solid var(--paper3);display:flex;align-items:center;justify-content:center;cursor:default}
+.ppb-btn svg{width:9px;height:9px;stroke:var(--muted2);fill:none;stroke-width:2}
+.ppb-arxiv{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.08em}
+
+/* Chat side */
+.split-chat{display:flex;flex-direction:column;background:var(--paper)}
+.split-chat-head{
+  padding:12px 16px;
+  background:var(--paper);border-bottom:1px solid var(--paper3);
+  flex-shrink:0;
+}
+.sch-top{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.sch-icon{width:20px;height:20px;background:rgba(46,158,96,.1);border:1px solid rgba(46,158,96,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sch-icon svg{width:9px;height:9px;stroke:var(--sg);fill:none;stroke-width:2}
+.sch-label{font-size:11.5px;font-weight:600;color:var(--ink)}
+.sch-model{font-family:var(--mono);font-size:8px;color:var(--muted2);letter-spacing:.1em}
+.split-chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.scm{display:flex;gap:8px;align-items:flex-start}
+.scm.u{flex-direction:row-reverse}
+.scm-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:600;flex-shrink:0}
+.scm-av.ai{background:var(--ink);color:var(--paper)}
+.scm-av.u{background:var(--paper3);color:var(--muted2)}
+.scm-bbl{padding:9px 12px;font-size:12px;line-height:1.65;max-width:90%}
+.scm.ai .scm-bbl{background:var(--paper2);border:1px solid var(--paper3);color:var(--muted2)}
+.scm.u .scm-bbl{background:rgba(46,158,96,.07);border:1px solid rgba(46,158,96,.18);color:var(--ink)}
+.scm-bbl strong{color:var(--ink);font-weight:600}
+.scm-bbl em{font-style:italic;color:var(--muted2);font-size:10.5px}
+.split-chat-inp{
+  padding:11px 14px;border-top:1px solid var(--paper3);
+  display:flex;gap:8px;flex-shrink:0;
+  background:var(--paper);
+}
+.sci{
+  flex:1;background:var(--paper2);border:1px solid var(--paper3);
+  padding:9px 12px;font-family:var(--sans);font-size:12px;color:var(--muted2);
+}
+.sci-btn{
+  width:36px;height:36px;background:var(--ink);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sci-btn svg{width:12px;height:12px;stroke:var(--paper);fill:none;stroke-width:2}
+.split-suggestions{padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap}
+.ssugg{
+  padding:4px 10px;font-size:10.5px;font-family:var(--sans);
+  border:1px solid var(--paper3);background:var(--paper2);
+  color:var(--muted2);cursor:default;transition:all .15s;
+}
+.ssugg:hover{border-color:var(--paper4);color:var(--ink)}
+
+/* ══════════════════════════════════════════
+   SCORE CARD — standalone section
+══════════════════════════════════════════ */
+.scorecard-sec{
+  background:var(--ink2);
+  padding:80px 52px;
+  position:relative;overflow:hidden;
+}
+.scorecard-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 55% 60% at 75% 50%,rgba(184,149,90,.05) 0%,transparent 65%);pointer-events:none}
+.sc-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 380px;gap:64px;align-items:start}
+.sc-copy{}
+.sc-copy-h{font-family:var(--serif);font-size:clamp(2.2rem,3.5vw,3.2rem);font-weight:600;color:var(--paper);letter-spacing:-.03em;line-height:1.1;margin-bottom:18px}
+.sc-copy-h em{font-style:italic;color:var(--gold-l)}
+.sc-copy-p{font-size:14px;color:var(--muted);line-height:1.85;margin-bottom:28px}
+.sc-dims-explain{display:flex;flex-direction:column;gap:10px}
+.scd{display:flex;align-items:flex-start;gap:12px}
+.scd-num{font-family:var(--mono);font-size:10px;color:var(--gold);width:18px;flex-shrink:0;margin-top:1px}
+.scd-text{font-size:13px;color:var(--muted);line-height:1.65}
+.scd-text strong{color:rgba(248,245,239,.65);font-weight:600}
+
+/* ══════════════════════════════════════════
+   SHARED SECTION STYLES
+══════════════════════════════════════════ */
+.sec-lbl{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:18px;
+  display:flex;align-items:center;gap:12px;
+}
+.sec-lbl::before{
+  content:'';
+  flex:0 0 28px;height:1px;
+  background:var(--gold);
+  opacity:.4;
+}
+.sec-lbl.light{color:var(--muted2)}
+.sec-lbl.light::before{background:var(--paper3)}
+.section-w{max-width:1100px;margin:0 auto}
+
+/* ══════════════════════════════════════════
+   WHO IT'S FOR
+══════════════════════════════════════════ */
+.for-sec{background:var(--paper);padding:100px 52px}
+.for-h{font-family:var(--serif);font-size:clamp(2.2rem,4vw,3.6rem);font-weight:600;color:var(--ink);line-height:1.1;letter-spacing:-.03em;max-width:700px;margin-bottom:56px}
+.persona-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--paper3)}
+.persona{background:var(--paper);padding:38px 32px;transition:background .2s}
+.persona:hover{background:var(--paper2)}
+.p-icon{width:36px;height:36px;background:var(--paper2);border:1px solid var(--paper3);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.p-icon svg{width:15px;height:15px;stroke:var(--muted2);fill:none;stroke-width:1.8}
+.p-who{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.p-title{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink);margin-bottom:12px;line-height:1.3}
+.p-desc{font-size:13px;color:var(--muted2);line-height:1.85}
+.p-desc strong{color:var(--ink);font-weight:600}
+
+/* ══════════════════════════════════════════
+   MODELS — named, fancy
+══════════════════════════════════════════ */
+.models-sec{background:var(--ink2);padding:100px 52px;position:relative;overflow:hidden}
+.models-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 85% 40%,rgba(184,149,90,.05) 0%,transparent 65%);pointer-events:none}
+.models-h{font-family:var(--serif);font-size:clamp(2.2rem,3.5vw,3.4rem);font-weight:600;color:var(--paper);letter-spacing:-.03em;line-height:1.1;margin-bottom:10px}
+.models-sub{font-size:15px;color:var(--muted);max-width:560px;line-height:1.8;margin-bottom:64px}
+
+.pipeline-wrap{position:relative}
+.pipe-line{position:absolute;top:26px;left:calc(12.5% + 12px);right:calc(12.5% + 12px);height:1px;background:linear-gradient(90deg,rgba(184,149,90,.15),rgba(46,158,96,.2),rgba(184,149,90,.15));z-index:0}
+.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;z-index:1}
+.pstep{padding:0 20px 36px}
+.pstep-num{
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  margin-bottom:20px;
+  border:1px solid rgba(255,255,255,.1);
+  color:var(--muted);
+  background:var(--ink2);
+}
+.pstep.featured .pstep-num{background:var(--sg);border-color:var(--sg);color:#fff}
+.pstep.hype .pstep-num{background:var(--amber);border-color:var(--amber);color:#fff}
+.pstep-model-name{
+  font-family:var(--serif);
+  font-size:15px;font-weight:600;
+  color:var(--paper);
+  margin-bottom:4px;line-height:1.3;
+}
+.pstep-model-sub{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.pstep-desc{font-size:12px;color:var(--muted);line-height:1.75}
+.pstep-outs{margin-top:12px;display:flex;flex-direction:column;gap:4px}
+.po{font-family:var(--mono);font-size:9px;color:rgba(122,120,112,.7);display:flex;align-items:center;gap:5px}
+.po::before{content:'→';color:rgba(255,255,255,.1)}
+
+/* model name badges */
+.model-badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:48px;padding-top:40px;border-top:1px solid rgba(255,255,255,.06)}
+.model-badge{padding:10px 18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);display:flex;flex-direction:column;gap:4px}
+.mb-name{font-family:var(--serif);font-size:14px;font-weight:600;color:var(--paper);letter-spacing:.01em}
+.mb-role{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.mb-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.mb-tag{display:inline-block;margin-top:6px;padding:2px 8px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase}
+.mbt-gold{background:var(--gold-p);border:1px solid rgba(184,149,90,.25);color:var(--gold-l)}
+.mbt-green{background:rgba(46,158,96,.1);border:1px solid rgba(46,158,96,.2);color:var(--sg-b)}
+
+/* ══════════════════════════════════════════
+   CHAT FEATURE
+══════════════════════════════════════════ */
+.chat-sec{background:var(--paper);padding:100px 52px;border-top:1px solid var(--paper3)}
+.chat-inner{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.chat-h{font-family:var(--serif);font-size:clamp(2.2rem,3.5vw,3.2rem);font-weight:600;color:var(--ink);letter-spacing:-.03em;line-height:1.1;margin-bottom:18px}
+.chat-h em{font-style:italic;color:var(--gold)}
+.chat-p{font-size:15px;color:var(--muted2);line-height:1.85;margin-bottom:28px}
+.chat-bullets{display:flex;flex-direction:column;gap:13px}
+.cb{display:flex;align-items:flex-start;gap:12px;font-size:13px;color:var(--muted2);line-height:1.7}
+.cbdot{width:18px;height:18px;background:rgba(46,158,96,.08);border:1px solid rgba(46,158,96,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.cbdot svg{width:8px;height:8px;stroke:var(--sg);fill:none;stroke-width:2.5}
+.cb strong{color:var(--ink);font-weight:600}
+
+/* chat mock light */
+.chat-mock{background:var(--paper2);border:1px solid var(--paper3);overflow:hidden}
+.cm-head{padding:12px 16px;background:var(--paper);border-bottom:1px solid var(--paper3);display:flex;align-items:center;gap:9px}
+.cm-pico{width:22px;height:22px;background:rgba(46,158,96,.1);border:1px solid rgba(46,158,96,.2);display:flex;align-items:center;justify-content:center}
+.cm-pico svg{width:10px;height:10px;stroke:var(--sg);fill:none;stroke-width:2}
+.cm-pname{font-size:11px;font-weight:500;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cm-sbadge{font-family:var(--mono);font-size:8px;padding:2px 7px;background:rgba(46,158,96,.08);border:1px solid rgba(46,158,96,.18);color:var(--sg)}
+.cm-msgs{padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:260px}
+.cm-msg{display:flex;gap:8px;align-items:flex-start}
+.cm-msg.u{flex-direction:row-reverse}
+.cm-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:600;flex-shrink:0}
+.cm-av.ai{background:var(--ink);color:var(--paper)}
+.cm-av.u{background:var(--paper3);color:var(--muted2)}
+.cm-bbl{padding:8px 11px;font-size:11.5px;line-height:1.65;max-width:88%}
+.cm-msg.ai .cm-bbl{background:var(--paper);border:1px solid var(--paper3);color:var(--muted2)}
+.cm-msg.u .cm-bbl{background:rgba(46,158,96,.08);border:1px solid rgba(46,158,96,.18);color:var(--ink)}
+.cm-bbl strong{color:var(--ink);font-weight:600}
+.cm-inp-row{padding:12px 16px;border-top:1px solid var(--paper3);display:flex;gap:8px;background:var(--paper)}
+.cm-inp{flex:1;background:var(--paper2);border:1px solid var(--paper3);padding:8px 12px;font-family:var(--sans);font-size:12px;color:var(--muted2)}
+.cm-send{width:34px;height:34px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cm-send svg{width:12px;height:12px;stroke:var(--paper);fill:none;stroke-width:2}
+
+/* ══════════════════════════════════════════
+   LIVE PAPERS (dark section)
+══════════════════════════════════════════ */
+.papers-sec{background:var(--ink2);padding:100px 52px;position:relative;overflow:hidden}
+.papers-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 45% 55% at 80% 50%,rgba(184,149,90,.045) 0%,transparent 65%);pointer-events:none}
+.papers-h{font-family:var(--serif);font-size:clamp(2.2rem,3.5vw,3.2rem);font-weight:600;color:var(--paper);letter-spacing:-.03em;line-height:1.1;margin-bottom:10px}
+.papers-sub{font-size:15px;color:var(--muted);max-width:500px;line-height:1.75;margin-bottom:52px}
+.pcards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.05)}
+.pcard{background:var(--ink2);padding:28px 24px;transition:background .2s;cursor:default}
+.pcard:hover{background:var(--ink3)}
+.pct{display:flex;align-items:center;gap:7px;margin-bottom:14px}
+.pct-d{width:5px;height:5px;border-radius:50%}
+.adopt .pct-d{background:var(--sg-b)}
+.gem .pct-d{background:var(--gold-l)}
+.expt .pct-d{background:#e09535}
+.skip .pct-d{background:#d06060}
+.pct-l{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase}
+.adopt .pct-l{color:var(--sg-b)}.gem .pct-l{color:var(--gold-l)}.expt .pct-l{color:#e09535}.skip .pct-l{color:#d06060}
+.pc-title{font-family:var(--serif);font-size:14.5px;font-weight:600;color:var(--paper);line-height:1.45;margin-bottom:8px}
+.pc-desc{font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.pc-foot{display:flex;align-items:center;justify-content:space-between}
+.pc-score{font-family:var(--mono);font-size:24px;font-weight:500;color:var(--paper)}
+.pc-dims{display:flex;flex-direction:column;gap:3px;flex:1;margin:0 14px;max-width:90px}
+.pcd{height:2px;background:rgba(255,255,255,.06)}
+.pcd-f{height:2px}
+.adopt .pcd-f{background:var(--sg)}
+.gem .pcd-f{background:var(--gold)}
+.expt .pcd-f{background:var(--amber)}
+.skip .pcd-f{background:var(--red)}
+.pc-hype{font-family:var(--mono);font-size:9px;padding:2px 7px}
+.ph-lo{background:rgba(46,158,96,.1);border:1px solid rgba(46,158,96,.2);color:var(--sg-b)}
+.ph-hi{background:var(--red-p);border:1px solid rgba(176,56,56,.2);color:#d06060}
+.ph-mid{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted)}
+
+/* ══════════════════════════════════════════
+   STATS
+══════════════════════════════════════════ */
+.stats-sec{background:var(--paper);padding:80px 52px;border-top:1px solid var(--paper3)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--paper3);margin-bottom:52px}
+.sc{background:var(--paper);padding:40px 32px}
+.sn{font-family:var(--serif);font-size:52px;font-weight:900;color:var(--ink);line-height:1;letter-spacing:-.04em;margin-bottom:6px}
+.sn em{font-size:30px;font-style:normal;color:var(--gold)}
+.sl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.tech-row{display:flex;align-items:center;flex-wrap:wrap;border:1px solid var(--paper3)}
+.tech-p{padding:13px 22px;border-right:1px solid var(--paper3);font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:7px}
+.tech-p:last-child{border-right:none}
+.tech-p svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0}
+
+/* ══════════════════════════════════════════
+   CTA
+══════════════════════════════════════════ */
+.cta-sec{background:var(--ink);padding:120px 52px;text-align:center;position:relative;overflow:hidden}
+.cta-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 55% 70% at 50% 50%,rgba(184,149,90,.055) 0%,transparent 65%);pointer-events:none}
+.cta-rel{position:relative}
+.cta-ey{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted2);margin-bottom:18px}
+.cta-h{font-family:var(--serif);font-size:clamp(2rem,5vw,4.2rem);font-weight:600;color:var(--paper);line-height:1.1;letter-spacing:-.025em;max-width:680px;margin:0 auto 18px}
+.cta-h em{font-style:italic;color:var(--gold-l)}
+.cta-sub{font-size:15px;color:rgba(248,245,239,.45);line-height:1.8;max-width:420px;margin:0 auto 48px}
+.sp-row{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:7px;margin-bottom:36px}
+.sp-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin-right:4px}
+.sp-t{padding:7px 14px;border:1px solid rgba(255,255,255,.1);font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none}
+.sp-t:hover,.sp-t.on{border-color:var(--gold);color:var(--gold)}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.btn-cta{padding:15px 38px;background:var(--gold);color:var(--ink);font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:9px;transition:all .22s}
+.btn-cta:hover{background:var(--gold-l);transform:translateY(-2px);box-shadow:0 10px 28px rgba(184,149,90,.2)}
+.btn-cta svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
+.cta-note{margin-top:20px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+
+/* ══════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════ */
+footer{background:var(--ink2);padding:32px 52px;border-top:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.foot-logo{font-family:var(--serif);font-size:14px;color:var(--muted2)}
+.foot-links{display:flex;gap:28px}
+.foot-link{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);text-decoration:none;transition:color .15s}
+.foot-link:hover{color:var(--paper)}
+.foot-copy{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.06em}
+
+/* ══════════════════════════════════════════
+   SCROLL REVEAL
+══════════════════════════════════════════ */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:translateY(0)}
+.d1{transition-delay:.08s}.d2{transition-delay:.18s}.d3{transition-delay:.28s}.d4{transition-delay:.38s}
+
+@media(max-width:960px){
+  nav{padding:16px 24px}.nav-r .nav-a{display:none}
+  .hero{padding:100px 24px 64px}
+  .split-sec,.scorecard-sec{padding:0 24px 64px}
+  .split-sec{padding-bottom:64px}
+  .split-label-row{padding:40px 0 28px}
+  .split-sub{text-align:left}
+  .split-frame{grid-template-columns:1fr;height:auto}
+  .split-pdf{height:360px}
+  .sc-inner{grid-template-columns:1fr;gap:36px}
+  .for-sec,.models-sec,.chat-sec,.papers-sec,.stats-sec,.cta-sec{padding:64px 24px}
+  .persona-grid{grid-template-columns:1fr}
+  .pipeline{grid-template-columns:1fr 1fr}.pipe-line{display:none}
+  .model-badge-row{flex-direction:column}
+  .chat-inner{grid-template-columns:1fr;gap:36px}
+  .pcards{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+  footer{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ CINEMATIC INTRO ══ -->
+<div id="intro" onclick="skipIntro()">
+  <div class="intro-glow"></div>
+  <div id="stage-quote">
+    <div class="q-mark">❝</div>
+    <div class="q-text" id="qText"></div>
+    <div class="q-attr" id="qAttr"></div>
+  </div>
+  <div id="stage-logo">
+    <div class="intro-wordmark" id="introWord">Paper2Signal</div>
+    <div class="intro-tagline">Research Intelligence · Production Radar</div>
+    <div class="intro-models">
+      <div class="im-item"><div class="im-dot"></div>The Reasoner</div>
+      <div class="im-item"><div class="im-dot"></div>The Thinker</div>
+      <div class="im-item"><div class="im-dot"></div>The Scribe</div>
+      <div class="im-item"><div class="im-dot"></div>The Sentinel</div>
+    </div>
+  </div>
+  <div class="intro-bar" id="introBar"></div>
+  <div class="intro-skip">Click to enter →</div>
+</div>
+
+<!-- ══ MAIN CONTENT ══ -->
+<div id="main-content">
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+    <span class="logo-name">Paper2Signal</span>
+  </a>
+  <div class="nav-r">
+    <a href="#for-who" class="nav-a">Who it's for</a>
+    <a href="#models" class="nav-a">Models</a>
+    <a href="#papers" class="nav-a">Live papers</a>
+    <a href="http://localhost:5173" class="nav-btn">Open app →</a>
+  </div>
+</nav>
+
+<!-- HERO — full width text -->
+<section class="hero">
+  <div class="hero-bg"></div><div class="hero-gl"></div>
+  <div class="hero-left">
+    <div class="hero-badge"><div class="bdot"></div><span class="btxt">247 papers scored today · pipeline live</span></div>
+    <h1 class="hero-h1">
+      47 new papers.<br>
+      20 minutes.<br>
+      <span class="l3">We already <em>read them all.</em></span>
+    </h1>
+    <p class="hero-p">
+      It's Monday morning. There are 47 new papers on ArXiv tagged to your field.<br>
+      You have 20 minutes.<br><br>
+
+      Paper2Signal has already read all 47.
+      It knows which three are worth your time, which one the community is hyping
+      but won't run in production, and which quiet paper — 18 stars, no Twitter thread —
+      would cut your inference cost in half if you shipped it this sprint.<br><br>
+
+      Open any paper. Ask it anything.
+      Not a summary — a conversation.
+      <strong>Why does the math work? Does it beat GPTQ on my setup?
+      What are the exact steps to try it today?</strong><br><br>
+
+      That's Paper2Signal.
+      Four agents, one verdict, zero wasted sprints.
+    </p>
+    <div class="hero-actions">
+      <a href="app.html" class="btn-hero">See what it found today <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      <a href="#split" class="btn-ghost">Watch it work ↓</a>
+    </div>
+    <div class="hero-trust">
+      <div class="ti">Open source<br><strong>GitHub</strong></div>
+      <div class="ts"></div>
+      <div class="ti">Model published<br><strong>HuggingFace</strong></div>
+      <div class="ts"></div>
+      <div class="ti">Powered by<br><strong>DeepSeek-R1</strong></div>
+      <div class="ts"></div>
+      <div class="ti">No account<br><strong>required</strong></div>
+      <div class="ts"></div>
+      <div class="ti">GRPO trained<br><strong>zero human labels</strong></div>
+    </div>
+  </div>
+</section>
+
+<div class="dark-to-light"></div>
+
+<!-- SPLIT VIEW — paper left, chat right -->
+<section class="split-sec" id="split">
+  <div class="section-w">
+    <div class="split-label-row reveal">
+      <div>
+        <div class="sec-lbl" style="margin-bottom:10px">The Scribe · Read &amp; Chat</div>
+        <h2 class="split-headline">Read the paper.<br><em>Ask it anything.</em> Then build.</h2>
+      </div>
+      <p class="split-sub">Every paper has a full chat interface. Not a summary — a conversation with the actual content.</p>
+    </div>
+    <div class="split-frame reveal">
+
+      <!-- PDF side -->
+      <div class="split-pdf">
+        <div class="split-pdf-bar">
+          <div class="spb-dots">
+            <div class="spb-dot r"></div>
+            <div class="spb-dot y"></div>
+            <div class="spb-dot g"></div>
+          </div>
+          <div class="spb-title">SpinQuant: LLM Quantization with Learned Rotations for 4-bit Inference</div>
+          <div class="spb-score">7.8 · Adopt</div>
+        </div>
+        <div class="pdf-mock">
+          <div class="pm-title-big">SpinQuant: LLM Quantization with<br>Learned Rotations for 4-bit Inference</div>
+          <div class="pm-authors">Zhuang Liu, Barlas Oguz, Changsheng Zhao et al. · Meta AI · 2024</div>
+          <div class="pm-divider"></div>
+          <div class="pm-section-lbl">Abstract</div>
+          <div class="pm-body">
+            <div class="pm-line full"></div>
+            <div class="pm-line full"></div>
+            <div class="pm-line med"></div>
+            <div class="pm-highlight">
+              <div class="pm-highlight-line"></div>
+              <div class="pm-highlight-line"></div>
+              <div class="pm-highlight-line"></div>
+            </div>
+            <div class="pm-line full"></div>
+            <div class="pm-line short"></div>
+          </div>
+          <div class="pm-divider"></div>
+          <div class="pm-section-lbl">1. Introduction</div>
+          <div class="pm-body">
+            <div class="pm-line full"></div>
+            <div class="pm-line full"></div>
+            <div class="pm-line med"></div>
+            <div class="pm-formula">W̃ = R^T · W · R &nbsp;|&nbsp; Minimize E[‖Wx − W̃x‖²]</div>
+            <div class="pm-line full"></div>
+            <div class="pm-line half"></div>
+          </div>
+        </div>
+        <div class="pdf-page-bar">
+          <div class="ppb-nav">
+            <div class="ppb-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+            <span>1 / 12</span>
+            <div class="ppb-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+          <div class="ppb-arxiv">arxiv.org/abs/2405.16406 ↗</div>
+        </div>
+      </div>
+
+      <!-- Chat side -->
+      <div class="split-chat">
+        <div class="split-chat-head">
+          <div class="sch-top">
+            <div class="sch-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+            <div class="sch-label">Paper Chat</div>
+          </div>
+          <div class="sch-model">The Scribe · RAG over full paper content</div>
+        </div>
+        <div class="split-chat-msgs">
+          <div class="scm ai">
+            <div class="scm-av ai">PS</div>
+            <div class="scm-bbl">I've read SpinQuant in full. It applies learned rotation matrices to weight tensors before quantization, reducing rounding error. The result: <strong>3.7× memory reduction</strong> with near-zero accuracy loss at 4-bit.</div>
+          </div>
+          <div class="scm u">
+            <div class="scm-av u">U</div>
+            <div class="scm-bbl">How is this different from GPTQ?</div>
+          </div>
+          <div class="scm ai">
+            <div class="scm-av ai">PS</div>
+            <div class="scm-bbl">GPTQ uses second-order information to minimize layer-wise quantization error. SpinQuant instead <strong>rotates the weight space</strong> so the distribution is more quantization-friendly before you apply any standard quantizer. On Llama 3 at 4-bit, SpinQuant beats GPTQ by ~0.4 perplexity points. And it's a <strong>drop-in</strong> — no changes to your inference code.</div>
+          </div>
+          <div class="scm u">
+            <div class="scm-av u">U</div>
+            <div class="scm-bbl">Give me the implementation steps</div>
+          </div>
+          <div class="scm ai">
+            <div class="scm-av ai">PS</div>
+            <div class="scm-bbl">From Section 4.2 of the paper: <strong>1.</strong> Install the HuggingFace integration via pip. <strong>2.</strong> Load your model with <em>load_in_4bit=True, quantization_config=SpinQuantConfig()</em>. <strong>3.</strong> Run inference — no fine-tuning needed. The rotation matrices are precomputed per model family.</div>
+          </div>
+        </div>
+        <div class="split-suggestions">
+          <div class="ssugg">Does this work with vLLM?</div>
+          <div class="ssugg">Explain the rotation math</div>
+          <div class="ssugg">Compare to AWQ</div>
+        </div>
+        <div class="split-chat-inp">
+          <div class="sci">Ask anything about this paper...</div>
+          <div class="sci-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SCORE CARD — what the pipeline produces -->
+<section class="scorecard-sec">
+  <div class="sc-inner reveal">
+    <div class="sc-copy">
+      <div class="sec-lbl light">The Thinker · Production Score</div>
+      <h2 class="sc-copy-h">Not just "does code exist?" — <em>is it worth your time?</em></h2>
+      <p class="sc-copy-p">Most paper tools tell you what a paper says. Paper2Signal tells you whether it's production-ready for your stack. Every score is the output of DeepSeek-R1 chain-of-thought reasoning — not a keyword match.</p>
+      <div class="sc-dims-explain">
+        <div class="scd"><span class="scd-num">01</span><div class="scd-text"><strong>Reproducibility</strong> — Can you actually run this? Does the code exist, is it maintained, do the benchmarks reproduce?</div></div>
+        <div class="scd"><span class="scd-num">02</span><div class="scd-text"><strong>Compute cost</strong> — What does it cost to run at your scale? Is it H100-only or does it work on a single A100?</div></div>
+        <div class="scd"><span class="scd-num">03</span><div class="scd-text"><strong>Latency</strong> — Does it actually make inference faster, or is the speedup only in training?</div></div>
+        <div class="scd"><span class="scd-num">04</span><div class="scd-text"><strong>Adoption trajectory</strong> — Is the community actually using it, or just citing it?</div></div>
+        <div class="scd"><span class="scd-num">05</span><div class="scd-text"><strong>Hype score</strong> — Separately scored by The Sentinel, our GRPO-trained model. High hype + low score = skip.</div></div>
+      </div>
+    </div>
+    <!-- score card dark -->
+    <div class="score-demo reveal d2">
+      <div class="sd-bar"></div>
+      <div class="sd-head">
+        <div class="sd-title" id="dTitle">FlashAttention-3: Fast and Accurate Attention with Asynchrony and Low-precision</div>
+        <div class="sd-score-box">
+          <div class="sd-num" id="dScore">8.5</div>
+          <div class="sd-slbl">Prod. score</div>
+        </div>
+      </div>
+      <div class="sd-verdict">
+        <div class="vbadge vb-adopt" id="dVerdict">Adopt</div>
+        <div class="vtext" id="dVText">Drop-in for HuggingFace + vLLM. 1.2k stars. Use in production this week.</div>
+      </div>
+      <div class="sd-dims">
+        <div class="dr"><span class="dl">Reproducibility</span><div class="dt"><div class="df" id="df1" style="width:0%;background:#3dba72"></div></div><span class="dv">9.0</span></div>
+        <div class="dr"><span class="dl">Compute cost</span><div class="dt"><div class="df" id="df2" style="width:0%;background:#3dba72"></div></div><span class="dv">8.0</span></div>
+        <div class="dr"><span class="dl">Latency</span><div class="dt"><div class="df" id="df3" style="width:0%;background:#3dba72"></div></div><span class="dv">8.5</span></div>
+        <div class="dr"><span class="dl">Adoption</span><div class="dt"><div class="df" id="df4" style="width:0%;background:#3dba72"></div></div><span class="dv">7.0</span></div>
+      </div>
+      <div class="sd-chat">
+        <div class="sc-lbl">The Sentinel · Hype detection</div>
+        <div class="sc-msg ai" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Hype score</span>
+          <span style="font-family:var(--mono);font-size:18px;color:var(--muted)">8 / 10</span>
+        </div>
+        <div class="sc-msg ai" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Hidden gem?</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">No — well known</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- WHO IT'S FOR -->
+<section class="for-sec" id="for-who">
+  <div class="section-w">
+    <div class="sec-lbl reveal">Who it's for</div>
+    <h2 class="for-h reveal">One platform. Three kinds of people. All saving time on research.</h2>
+    <div class="persona-grid">
+      <div class="persona reveal d1">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
+        <div class="p-who">For students</div>
+        <div class="p-title">Just discovered a paper and don't know where to start</div>
+        <div class="p-desc">Chat with the paper directly. Ask what the equations mean, how the method compares to what you already know, and whether there's a simpler way to implement it. <strong>Learn while you read — at your own pace.</strong></div>
+      </div>
+      <div class="persona reveal d2">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg></div>
+        <div class="p-who">For researchers</div>
+        <div class="p-title">Staying current without drowning in abstracts</div>
+        <div class="p-desc">Paper2Signal surfaces what's genuinely novel versus incremental. Get a scored digest every day and spend your deep reading time only on papers that earned it. <strong>Know the field without reading every paper.</strong></div>
+      </div>
+      <div class="persona reveal d3">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="p-who">For ML engineers</div>
+        <div class="p-title">Deciding what's worth integrating this sprint</div>
+        <div class="p-desc">Every paper is scored across 5 production dimensions. Not "does code exist?" but <strong>is it useful for your specific stack, at your scale, right now?</strong> No more wasted spikes on overhyped papers.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODELS — named and fancy -->
+<section class="models-sec" id="models">
+  <div class="section-w">
+    <div class="sec-lbl light reveal">The intelligence layer</div>
+    <h2 class="models-h reveal">Three purpose-built models.<br>Each one does one thing exceptionally well.</h2>
+    <p class="models-sub reveal">Paper2Signal doesn't use a single general-purpose LLM. Each stage of the pipeline uses a model fine-tuned or orchestrated specifically for that job — using the same reinforcement learning techniques that power DeepSeek-R1.</p>
+
+    <div class="pipeline-wrap" id="how">
+      <div class="pipe-line"></div>
+      <div class="pipeline">
+
+        <div class="pstep reveal d1">
+          <div class="pstep-num">1</div>
+          <div class="pstep-model-name">The Reasoner</div>
+          <div class="pstep-model-sub">Classifier · Llama-3.3-70b via Groq</div>
+          <div class="pstep-desc">The first mind to read each paper. Maps it to the research landscape — domain, novelty level, core contributions — and asks the first hard question: does working code actually exist?</div>
+          <div class="pstep-outs">
+            <div class="po">Domain + category</div>
+            <div class="po">Novelty assessment</div>
+            <div class="po">Code availability</div>
+          </div>
+        </div>
+
+        <div class="pstep reveal d2">
+          <div class="pstep-num">2</div>
+          <div class="pstep-model-name">The Thinker</div>
+          <div class="pstep-model-sub">Production Scorer · DeepSeek-R1 via HF</div>
+          <div class="pstep-desc">The deepest mind in the pipeline. Uses DeepSeek-R1's chain-of-thought reasoning to score each paper across five production dimensions — reproducibility, compute cost, latency, adoption trajectory, and real-world usefulness.</div>
+          <div class="pstep-outs">
+            <div class="po">5-dimension score 0–10</div>
+            <div class="po">Full reasoning trace</div>
+            <div class="po">Overall readiness</div>
+          </div>
+        </div>
+
+        <div class="pstep featured reveal d3">
+          <div class="pstep-num">3</div>
+          <div class="pstep-model-name">The Scribe</div>
+          <div class="pstep-model-sub">Brief Writer + Chat · Llama-3.3-70b + ChromaDB</div>
+          <div class="pstep-desc">Translates complex analysis into plain engineering language. Writes your Adopt/Experiment/Watch verdict and powers the live paper chat — grounding every answer in the actual paper content via RAG retrieval.</div>
+          <div class="pstep-outs">
+            <div class="po">Adopt / Experiment / Watch</div>
+            <div class="po">Stack fit analysis</div>
+            <div class="po">Live paper chat</div>
+          </div>
+        </div>
+
+        <div class="pstep hype reveal d4">
+          <div class="pstep-num">4</div>
+          <div class="pstep-model-name">The Sentinel</div>
+          <div class="pstep-model-sub">Hype Detector · GRPO fine-tuned · Local</div>
+          <div class="pstep-desc">The watchdog. The only model in the pipeline we trained ourselves — using GRPO reinforcement learning with GitHub stars as reward signal. Zero human labels. It learned to separate genuine community interest from manufactured hype.</div>
+          <div class="pstep-outs">
+            <div class="po">Hype score 1–10</div>
+            <div class="po">Hidden gem detection</div>
+            <div class="po">Overhype alert</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Named model badges -->
+      <div class="model-badge-row reveal">
+        <div class="model-badge">
+          <div class="mb-name">The Reasoner</div>
+          <div class="mb-role">Classifier · Agent 1</div>
+          <div class="mb-desc">First to read. Maps every paper to the research landscape.</div>
+          <div class="mb-tag mbt-gold">Llama-3.3-70b · Groq</div>
+        </div>
+        <div class="model-badge">
+          <div class="mb-name">The Thinker</div>
+          <div class="mb-role">Production Scorer · Agent 2</div>
+          <div class="mb-desc">Deepest reasoner. Scores across 5 production dimensions.</div>
+          <div class="mb-tag mbt-gold">DeepSeek-R1 · HF Router</div>
+        </div>
+        <div class="model-badge">
+          <div class="mb-name">The Scribe</div>
+          <div class="mb-role">Brief Writer + Chat · Agent 3</div>
+          <div class="mb-desc">Translates analysis to plain language. Powers paper chat.</div>
+          <div class="mb-tag mbt-gold">Llama-3.3-70b · ChromaDB RAG</div>
+        </div>
+        <div class="model-badge">
+          <div class="mb-name">The Sentinel</div>
+          <div class="mb-role">Hype Detector · Agent 4</div>
+          <div class="mb-desc">Trained by us. GRPO. Zero human labels. Published on HuggingFace.</div>
+          <div class="mb-tag mbt-green">paper2signal-sentinel · HuggingFace</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAT FEATURE -->
+<section class="chat-sec" id="chat">
+  <div class="section-w">
+    <div class="chat-inner">
+      <div class="chat-copy reveal">
+        <div class="sec-lbl">The Scribe · The killer feature</div>
+        <h2 class="chat-h">Read the paper.<br><em>Ask it anything.</em><br>Then build.</h2>
+        <p class="chat-p">Every paper has a full chat interface powered by The Scribe — retrieval-augmented generation over the actual paper content. You're not asking an LLM that guessed from training data. You're asking a model that read the paper.</p>
+        <div class="chat-bullets">
+          <div class="cb"><div class="cbdot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><strong>Students:</strong> "Explain the attention mechanism on page 4 in plain English"</div></div>
+          <div class="cb"><div class="cbdot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><strong>Researchers:</strong> "How does this compare to the Mamba approach from 2023?"</div></div>
+          <div class="cb"><div class="cbdot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><strong>Engineers:</strong> "Will this integrate with my FastAPI + PyTorch 2.0 setup?"</div></div>
+          <div class="cb"><div class="cbdot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><strong>Everyone:</strong> "Give me the exact steps to implement this today"</div></div>
+        </div>
+      </div>
+      <div class="chat-mock reveal d2">
+        <div class="cm-head">
+          <div class="cm-pico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="cm-pname">SpinQuant: LLM Quantization with Learned Rotations</div>
+          <div class="cm-sbadge">7.8 · Adopt</div>
+        </div>
+        <div class="cm-msgs">
+          <div class="cm-msg ai">
+            <div class="cm-av ai">PS</div>
+            <div class="cm-bbl">I've read SpinQuant in full. It uses learned rotation matrices to reduce quantization error — <strong>3.7× memory reduction</strong> with near-zero accuracy loss. HuggingFace integration is already available. <em>— The Scribe</em></div>
+          </div>
+          <div class="cm-msg u">
+            <div class="cm-av u">U</div>
+            <div class="cm-bbl">Is this better than GPTQ for Llama 3?</div>
+          </div>
+          <div class="cm-msg ai">
+            <div class="cm-av ai">PS</div>
+            <div class="cm-bbl">For Llama 3 at 4-bit, SpinQuant beats GPTQ on perplexity by <strong>~0.4 points</strong>. The HuggingFace integration is a drop-in — no changes to your inference code needed.</div>
+          </div>
+        </div>
+        <div class="cm-inp-row">
+          <div class="cm-inp">Ask anything about this paper...</div>
+          <div class="cm-send"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE PAPERS -->
+<section class="papers-sec" id="papers">
+  <div class="section-w">
+    <div class="sec-lbl light reveal">Today's verdict</div>
+    <h2 class="papers-h reveal">What the pipeline found today</h2>
+    <p class="papers-sub reveal">Every number below is the output of all four models — The Reasoner, The Thinker, The Scribe, and The Sentinel. Not a summary. A judgment.</p>
+    <div class="pcards">
+      <div class="pcard adopt reveal d1">
+        <div class="pct"><div class="pct-d"></div><div class="pct-l">Adopt · Production ready</div></div>
+        <div class="pc-title">FlashAttention-3: Fast and Accurate Attention with Asynchrony</div>
+        <div class="pc-desc">1.5–2× faster than FA2 on H100. Drop-in replacement. Zero code changes on HuggingFace or vLLM.</div>
+        <div class="pc-foot">
+          <div class="pc-score">8.5</div>
+          <div class="pc-dims"><div class="pcd"><div class="pcd-f" style="width:90%"></div></div><div class="pcd"><div class="pcd-f" style="width:80%"></div></div><div class="pcd"><div class="pcd-f" style="width:85%"></div></div><div class="pcd"><div class="pcd-f" style="width:70%"></div></div></div>
+          <div class="pc-hype ph-mid">Hype 8/10</div>
+        </div>
+      </div>
+      <div class="pcard gem reveal d2">
+        <div class="pct"><div class="pct-d"></div><div class="pct-l">💎 The Sentinel found · Hidden gem</div></div>
+        <div class="pc-title">SpinQuant: LLM Quantization with Learned Rotations</div>
+        <div class="pc-desc">3.7× memory reduction, near-zero accuracy loss. Community sleeping on this. HuggingFace-ready right now.</div>
+        <div class="pc-foot">
+          <div class="pc-score">7.8</div>
+          <div class="pc-dims"><div class="pcd"><div class="pcd-f" style="width:85%"></div></div><div class="pcd"><div class="pcd-f" style="width:90%"></div></div><div class="pcd"><div class="pcd-f" style="width:88%"></div></div><div class="pcd"><div class="pcd-f" style="width:65%"></div></div></div>
+          <div class="pc-hype ph-lo">Hype 4/10</div>
+        </div>
+      </div>
+      <div class="pcard skip reveal d3">
+        <div class="pct"><div class="pct-d"></div><div class="pct-l">⚠ The Sentinel flagged · Overhyped</div></div>
+        <div class="pc-title">Linear Attention via Diagonal State Spaces</div>
+        <div class="pc-desc">Interesting theory. No implementation. Benchmarks on synthetic data only. Don't spend engineering time here yet.</div>
+        <div class="pc-foot">
+          <div class="pc-score" style="color:#d06060">2.4</div>
+          <div class="pc-dims"><div class="pcd"><div class="pcd-f" style="width:18%"></div></div><div class="pcd"><div class="pcd-f" style="width:30%"></div></div><div class="pcd"><div class="pcd-f" style="width:22%"></div></div><div class="pcd"><div class="pcd-f" style="width:10%"></div></div></div>
+          <div class="pc-hype ph-hi">Hype 8/10</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-sec">
+  <div class="section-w">
+    <div class="stats-row">
+      <div class="sc reveal"><div class="sn">247<em>+</em></div><div class="sl">Papers scored today</div></div>
+      <div class="sc reveal d1"><div class="sn">0</div><div class="sl">Human labels in The Sentinel</div></div>
+      <div class="sc reveal d2"><div class="sn">4</div><div class="sl">Purpose-built models</div></div>
+      <div class="sc reveal d3"><div class="sn">6<em>h</em></div><div class="sl">Auto-refresh cycle</div></div>
+    </div>
+    <div class="tech-row reveal">
+      <div class="tech-p"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20"/></svg>ArXiv pipeline</div>
+      <div class="tech-p"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>LangGraph agents</div>
+      <div class="tech-p"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>ChromaDB · The Scribe</div>
+      <div class="tech-p"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>The Sentinel · RLVR</div>
+      <div class="tech-p"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>FastAPI + SQLite</div>
+      <div class="tech-p"><svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77"/></svg>Open source · GitHub</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec">
+  <div class="cta-rel">
+    <div class="cta-ey reveal">No account required · Start now</div>
+    <h2 class="cta-h reveal">Today's papers,<br><em>already understood.</em></h2>
+    <p class="cta-sub reveal">Tell us what you're working with. The Reasoner, The Thinker, The Scribe, and The Sentinel will show you exactly what's worth your time — and how to use it.</p>
+    <div class="sp-row reveal">
+      <span class="sp-lbl">I work with:</span>
+      <div class="sp-t on" onclick="toggleTag(this)">PyTorch</div>
+      <div class="sp-t" onclick="toggleTag(this)">HuggingFace</div>
+      <div class="sp-t" onclick="toggleTag(this)">FastAPI</div>
+      <div class="sp-t" onclick="toggleTag(this)">vLLM</div>
+      <div class="sp-t" onclick="toggleTag(this)">LangChain</div>
+      <div class="sp-t" onclick="toggleTag(this)">JAX</div>
+      <div class="sp-t" onclick="toggleTag(this)">TensorFlow</div>
+    </div>
+    <div class="cta-btns reveal">
+      <a href="app.html" class="btn-cta">Open Paper2Signal <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+    </div>
+    <div class="cta-note reveal">Free · No signup · Stack saved locally · The Sentinel published on HuggingFace</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">Paper2Signal</div>
+  <div class="foot-links">
+    <a href="#models" class="foot-link">Models</a>
+    <a href="https://github.com/shau1905/papersignal" target="_blank" class="foot-link">GitHub</a>
+    <a href="https://huggingface.co/paper2signal-sentinel" target="_blank" class="foot-link">The Sentinel on HF</a>
+    <a href="app.html" class="foot-link">Open app</a>
+  </div>
+  <div class="foot-copy">© 2026 Paper2Signal</div>
+</footer>
+
+</div><!-- /main-content -->
+
+<script>
+/* ── INTRO SEQUENCE ── */
+const QUOTES=[
+  {t:"The good thing about science is that it's true whether or not you believe in it.",a:"Neil deGrasse Tyson"},
+  {t:"In theory there is no difference between theory and practice. In practice there is.",a:"Yogi Berra"},
+  {t:"A paper that cannot be reproduced is not a result — it's a rumour.",a:"Reproducibility Crisis, 2016"},
+  {t:"The most damaging phrase in the language is 'we've always done it this way.'",a:"Grace Hopper"},
+];
+
+const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
+document.getElementById('qText').textContent=q.t;
+document.getElementById('qAttr').textContent='— '+q.a;
+
+let introSkipped=false;
+const bar=document.getElementById('introBar');
+
+async function runIntro(){
+  // start loading bar
+  bar.style.transitionDuration='0s';bar.style.width='0%';
+  await sleep(50);
+  bar.style.transitionDuration='2.8s';bar.style.width='40%';
+
+  await sleep(300);
+  document.getElementById('stage-quote').classList.add('show');
+  await sleep(2900);
+  if(introSkipped)return;
+  document.getElementById('stage-quote').classList.remove('show');
+  await sleep(700);
+  if(introSkipped)return;
+
+  // loading bar continues
+  bar.style.transitionDuration='1.8s';bar.style.width='80%';
+
+  document.getElementById('stage-logo').classList.add('show');
+  await sleep(450);
+  document.getElementById('introWord').classList.add('shine');
+  await sleep(1600);
+  if(introSkipped)return;
+
+  bar.style.transitionDuration='.4s';bar.style.width='100%';
+  await sleep(500);
+  finishIntro();
+}
+
+function finishIntro(){
+  introSkipped=true;
+  // fade out intro first, then reveal page
+  document.getElementById('intro').classList.add('out');
+  setTimeout(()=>{
+    document.getElementById('intro').style.display='none';
+    document.getElementById('main-content').classList.add('show');
+    animateDimBars();
+    // small delay so scroll reveal fires after content is visible
+    setTimeout(startReveal, 100);
+  },950);
+}
+
+function skipIntro(){
+  if(introSkipped)return;
+  finishIntro();
+}
+
+function animateDimBars(){
+  setTimeout(()=>{
+    document.getElementById('df1').style.width='90%';
+    document.getElementById('df2').style.width='80%';
+    document.getElementById('df3').style.width='85%';
+    document.getElementById('df4').style.width='70%';
+  },400);
+}
+
+function startReveal(){
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');obs.unobserve(e.target);}});
+  },{threshold:.1,rootMargin:'0px 0px -36px 0px'});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+}
+
+// Rotate demo cards
+const demos=[
+  {title:'FlashAttention-3: Fast and Accurate Attention with Asynchrony and Low-precision',score:'8.5',vc:'vb-adopt',vl:'Adopt',vt:'Drop-in for HuggingFace + vLLM. 1.2k stars. Use in production this week.',dims:['90%','80%','85%','70%'],color:'#3dba72'},
+  {title:'SpinQuant: LLM Quantization with Learned Rotations for 4-bit Inference',score:'7.8',vc:'vb-adopt',vl:'Adopt · 💎 Gem',vt:'3.7× memory reduction. The Sentinel flagged as hidden gem — low hype, high value.',dims:['85%','90%','88%','65%'],color:'#b8955a'},
+  {title:'ColPali: Document Retrieval with Vision Language Models',score:'6.5',vc:'vb-expt',vl:'Experiment',vt:'Worth 2-3 days of engineering time. Promising but not production-ready yet.',dims:['75%','55%','60%','40%'],color:'#c8a96e'},
+];
+let di=0;
+setInterval(()=>{
+  if(!document.getElementById('main-content').classList.contains('show'))return;
+  di=(di+1)%demos.length;
+  const d=demos[di];
+  document.getElementById('dTitle').textContent=d.title;
+  document.getElementById('dScore').textContent=d.score;
+  document.getElementById('dVerdict').textContent=d.vl;
+  document.getElementById('dVerdict').className='vbadge '+d.vc;
+  document.getElementById('dVText').textContent=d.vt;
+  ['df1','df2','df3','df4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.style.width='0%';el.style.background=d.color;
+    setTimeout(()=>el.style.width=d.dims[i],120);
+  });
+},8000);
+
+function toggleTag(el){
+  el.classList.toggle('on');
+  const sel=[...document.querySelectorAll('.sp-t.on')].map(t=>t.textContent);
+  localStorage.setItem('ps-stack',JSON.stringify(sel));
+}
+
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
+  });
+});
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+runIntro();
+</script>
+</body>
+</html>
