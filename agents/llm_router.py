@@ -294,68 +294,46 @@ async def _call_sentinel(abstract: str) -> Optional[str]:
         except Exception as e:
             logger.warning(f"[Sentinel] Local query exception: {e}")
 
-    # Fallback to Hugging Face Serverless API
-    logger.info("[Sentinel] Local model server is offline. Falling back to Hugging Face Serverless API...")
-    if not settings.HF_API_KEY:
-        logger.warning("[Sentinel] HF_API_KEY not configured. Cannot perform serverless fallback.")
-        sentinel_state.record_failure("missing_hf_api_key")
-        return None
-
+    # Fallback to Hugging Face Gradio Space API
+    logger.info("[Sentinel] Local model server is offline. Falling back to Hugging Face Gradio Space API...")
     try:
-        # Prompt formatted in ChatML style
-        prompt = (
-            f"<|im_start|>system\n{SYSTEM_HYPE_PROMPT}\n<|im_end|>\n"
-            f"<|im_start|>user\nAbstract:\n{abstract[:800]}\n<|im_end|>\n"
-            f"<|im_start|>assistant\n"
+        from gradio_client import Client
+        
+        # Query your custom Space directly
+        client = Client("shau1905/paper2signal-inference", verbose=False)
+        
+        # client.predict handles the ZeroGPU cold start/lazy loading automatically!
+        result = client.predict(
+            abstract=abstract[:800],
+            api_name="/predict_hype"
         )
-        api_url = f"https://router.huggingface.co/hf-inference/models/{settings.HF_HYPE_MODEL}"
+        
+        if isinstance(result, dict):
+            # Gradio returned the parsed dictionary directly
+            score = float(result.get("hype_score", 0.0))
+            reason = str(result.get("reason", ""))
+            if score > 0:
+                latency = time.time() - t_start
+                sentinel_state.record_success(latency)
+                logger.info(f"[Sentinel] HF Gradio API: Done in {latency:.1f}s")
+                return json.dumps({"hype_score": score, "reason": reason})
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                api_url,
-                headers={"Authorization": f"Bearer {settings.HF_API_KEY}"},
-                json={
-                    "inputs": prompt,
-                    "parameters": {"max_new_tokens": 100, "temperature": 0.2}
-                }
-            )
+        elif isinstance(result, str):
+            # Parse fallback if string returned
+            from agents.pipeline import _parse_hype_response
+            score, reason = _parse_hype_response(result)
+            if score > 0:
+                latency = time.time() - t_start
+                sentinel_state.record_success(latency)
+                logger.info(f"[Sentinel] HF Gradio API: Done in {latency:.1f}s")
+                return json.dumps({"hype_score": score, "reason": reason})
 
-            if resp.status_code == 503:
-                logger.warning("[Sentinel] HF model serverless API is loading (503). Retrying in 10s...")
-                await asyncio.sleep(10)
-                resp = await client.post(
-                    api_url,
-                    headers={"Authorization": f"Bearer {settings.HF_API_KEY}"},
-                    json={
-                        "inputs": prompt,
-                        "parameters": {"max_new_tokens": 100, "temperature": 0.2}
-                    }
-                )
-
-            if resp.status_code == 200:
-                result = resp.json()
-                text = result[0].get("generated_text", "") if isinstance(result, list) else result.get("generated_text", "")
-                if "<|im_start|>assistant\n" in text:
-                    text = text.split("<|im_start|>assistant\n")[-1].strip()
-                
-                # Check for basic Qwen ChatML end tokens
-                text = text.replace("<|im_end|>", "").strip()
-
-                # Verify parse sanity
-                from agents.pipeline import _parse_hype_response
-                score, reason = _parse_hype_response(text)
-                if score > 0:
-                    latency = time.time() - t_start
-                    sentinel_state.record_success(latency)
-                    logger.info(f"[Sentinel] HF API: Done in {latency:.1f}s")
-                    return json.dumps({"hype_score": score, "reason": reason})
-
-            logger.warning(f"[Sentinel] HF API Request failed with status {resp.status_code}: {resp.text[:150]}")
-            sentinel_state.record_failure(f"hf_api_http_{resp.status_code}")
+        logger.warning("[Sentinel] HF Gradio API returned invalid response format.")
+        sentinel_state.record_failure("invalid_response_format")
 
     except Exception as e:
-        logger.warning(f"[Sentinel] HF API Exception occurred: {e}")
-        sentinel_state.record_failure(f"hf_exception_{type(e).__name__}")
+        logger.warning(f"[Sentinel] HF Gradio API Exception occurred: {e}")
+        sentinel_state.record_failure(f"hf_gradio_exception_{type(e).__name__}")
 
     return None
 
