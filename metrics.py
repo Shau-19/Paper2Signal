@@ -469,9 +469,9 @@ async def eval_latency():
         await client.post(f"{BASE}/chat", json={"message": "What is knowledge distillation?"})
         latencies["global_chat_ms"] = round((time.time() - t) * 1000)
 
-        # 4. Paper chat
+        # 4. Paper chat (deep)
         t = time.time()
-        await client.post(f"{BASE}/papers/{paper_id}/chat", json={
+        await client.post(f"{BASE}/papers/{paper_id}/chat/deep", json={
             "message": "Summarize the key contributions"
         })
         latencies["paper_chat_ms"] = round((time.time() - t) * 1000)

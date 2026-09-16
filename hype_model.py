@@ -185,6 +185,17 @@ def predict(data: dict):
 
 @app.get("/health")
 def health():
+    """Cheap liveness check — does not run inference. Use /selftest for that."""
+    return {
+        "status":       "ok",
+        "model_loaded": True,
+    }
+
+
+@app.get("/selftest")
+def selftest():
+    """Runs a full inference pass to verify the model is behaving correctly.
+    Slow (~15-30s on CPU) — not meant for frequent polling/keep-alive."""
     test = run_inference(
         "Simple transformer optimization reduces memory and latency with code at github.com/example."
     )

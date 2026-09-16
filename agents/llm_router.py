@@ -84,53 +84,63 @@ class SentinelState:
 sentinel_state = SentinelState()
 
 
-# ── Agent 1 & 3: Groq Llama-3.3-70b ─────────────────────────────────────────
+# ── Agent 1 & 3: Groq openai/gpt-oss-120b ───────────────────────────────────
 # Exponential backoff on 429 — handles rate limits gracefully
 # without failing the entire request chain.
+# Falls back to openai/gpt-oss-20b if 120b returns 404.
 
 async def _call_groq(system: str, user: str, max_retries: int = 3) -> Optional[str]:
     if not settings.GROQ_API_KEY:
         return None
 
-    for attempt in range(max_retries):
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(
-                    GROQ_URL,
-                    headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
-                    json={
-                        "model":       settings.GROQ_FAST_MODEL,
-                        "messages":    [
-                            {"role": "system", "content": system},
-                            {"role": "user",   "content": user},
-                        ],
-                        "max_tokens":  settings.LLM_MAX_TOKENS,
-                        "temperature": 0.3,
-                    },
-                )
+    # Try primary model first, fallback to lighter model on 404
+    models_to_try = [settings.GROQ_FAST_MODEL, settings.GROQ_FALLBACK_MODEL]
 
-                if resp.status_code == 200:
-                    content = resp.json()["choices"][0]["message"]["content"]
-                    if content is None:
-                        logger.warning("[Groq] Response content is None")
-                        return None
-                    return content.strip()
+    for model_id in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    resp = await client.post(
+                        GROQ_URL,
+                        headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+                        json={
+                            "model":       model_id,
+                            "messages":    [
+                                {"role": "system", "content": system},
+                                {"role": "user",   "content": user},
+                            ],
+                            "max_tokens":  settings.LLM_MAX_TOKENS,
+                            "temperature": 0.3,
+                        },
+                    )
 
-                if resp.status_code == 429:
-                    wait = 2 ** attempt   # 1s → 2s → 4s
-                    logger.warning(f"[Groq] Rate limited (attempt {attempt+1}/{max_retries}) — retrying in {wait}s")
-                    await asyncio.sleep(wait)
-                    continue
+                    if resp.status_code == 200:
+                        content = resp.json()["choices"][0]["message"]["content"]
+                        if content is None:
+                            logger.warning(f"[Groq] Response content is None (model={model_id})")
+                            return None
+                        logger.info(f"[Groq] Success with model={model_id}")
+                        return content.strip()
 
-                logger.warning(f"[Groq] {resp.status_code}: {resp.text[:150]}")
-                return None
+                    if resp.status_code == 429:
+                        wait = 2 ** attempt   # 1s → 2s → 4s
+                        logger.warning(f"[Groq] Rate limited (attempt {attempt+1}/{max_retries}) — retrying in {wait}s")
+                        await asyncio.sleep(wait)
+                        continue
 
-        except Exception as e:
-            logger.warning(f"[Groq] Attempt {attempt+1} failed: {e}")
-            if attempt < max_retries - 1:
-                await asyncio.sleep(1)
+                    if resp.status_code == 404:
+                        logger.warning(f"[Groq] Model {model_id} not found (404) — trying fallback model")
+                        break  # Move on to next model in models_to_try
 
-    logger.warning("[Groq] All retries exhausted")
+                    logger.warning(f"[Groq] {resp.status_code}: {resp.text[:150]}")
+                    return None
+
+            except Exception as e:
+                logger.warning(f"[Groq] Attempt {attempt+1} failed: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1)
+
+    logger.warning("[Groq] All models and retries exhausted")
     return None
 
 

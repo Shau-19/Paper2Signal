@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = Field(default="")
 
     # Agent 1 & 3 — fast tasks (classify, summarize)
-    GROQ_FAST_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_FAST_MODEL: str = "openai/gpt-oss-120b"
+    # Lighter fallback if 120b is unavailable
+    GROQ_FALLBACK_MODEL: str = "openai/gpt-oss-20b"
     # Final fallback
     OPENAI_FALLBACK_MODEL: str = "gpt-4o-mini"
 
@@ -132,7 +134,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = Field(default="")
 
     # Agent 1 & 3 — fast tasks
-    GROQ_FAST_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_FAST_MODEL: str = "openai/gpt-oss-120b"
+    # Lighter fallback if 120b is unavailable
+    GROQ_FALLBACK_MODEL: str = "openai/gpt-oss-20b"
     # Fallback
     OPENAI_FALLBACK_MODEL: str = "gpt-4o-mini"
 
