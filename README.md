@@ -560,23 +560,17 @@ Every other agent in this system has a fallback chain, because a slightly-worse 
 
 ```bash
 # 1. Backend
-pip install -r requirements.txt
+pip install -r req.txt
 python main.py                          # port 8000
 
 # 2. Sentinel (separate terminal)
 python hype_model.py                    # port 8001
 
-# 3. Seed landmark papers
-python seed_db.py
-
-# 4. Analyze papers
+# 3. Ingest + analyze papers
 python bulk.py --limit 50 --concurrency 3
 
-# 5. Frontend
+# 4. Frontend
 cd frontend && npm install && npm run dev   # port 5173
-
-# 6. Verify everything works
-python test_models.py                   # should show 4/4 PASS
 ```
 
 Required `.env`:
