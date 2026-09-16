@@ -69,7 +69,7 @@ flowchart TD
     class C,S,B,H agent
 ```
 
-**Exact `PaperState` fields (TypedDict, `agents/pipeline.py`)** — every agent reads what it needs and writes only its own keys into this one shared object:
+**Exact `PaperState` fields (TypedDict, `backend/agents/pipeline.py`)** — every agent reads what it needs and writes only its own keys into this one shared object:
 
 ```python
 class PaperState(TypedDict):
@@ -184,7 +184,7 @@ sequenceDiagram
     Pipeline-->>User: grounded answer + citations
 ```
 
-**Source-of-truth correction:** papers are ingested from **ArXiv only** (`ingestion/scraper.py`). GitHub is used later, separately, only to fetch star counts for velocity scoring (`ml/velocity.py`) — it is not a paper source. HuggingFace is used as an LLM/model provider (DeepSeek-R1 routing, Sentinel hosting) — it is also not a paper source. A diagram that lists "arXiv / HF / GitHub" as parallel ingestion sources overstates the system; there is exactly one ingestion source.
+**Source-of-truth correction:** papers are ingested from **ArXiv only** (`backend/ingestion/scraper.py`). GitHub is used later, separately, only to fetch star counts for velocity scoring (`backend/ml/velocity.py`) — it is not a paper source. HuggingFace is used as an LLM/model provider (DeepSeek-R1 routing, Sentinel hosting) — it is also not a paper source. A diagram that lists "arXiv / HF / GitHub" as parallel ingestion sources overstates the system; there is exactly one ingestion source.
 
 ---
 

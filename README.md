@@ -504,28 +504,31 @@ This runs 5 evaluation suites against the live backend and Sentinel model: hype-
 
 ```
 Paper2Signal/
-├── api/
-│   └── app.py               # FastAPI routes (20+ endpoints, SSE streaming)
-├── agents/
-│   ├── pipeline.py          # LangGraph 4-agent pipeline
-│   ├── llm_router.py        # Multi-provider LLM routing + fallback chains
-│   ├── rag.py                # Hybrid RAG engine (global + deep chat)
-│   └── guardrails.py         # Schema, score, grounding validators
-├── ml/
-│   ├── pdf_indexer.py        # PDF extraction + hybrid retrieval
-│   ├── embeddings.py         # ChromaDB embedding pipeline
-│   ├── clustering.py         # UMAP + HDBSCAN
-│   └── velocity.py           # GitHub + citation velocity
-├── ingestion/
-│   ├── scraper.py            # ArXiv scraper
-│   └── models.py             # SQLAlchemy models
-├── config/
-│   └── settings.py           # Pydantic settings (all tunables)
-├── hype_model.py              # Sentinel FastAPI server (port 8001)
-├── main.py                    # Uvicorn entrypoint (port 8000)
-├── scheduler.py                # APScheduler background pipeline
-├── bulk.py                     # Parallel batch analyzer
-├── metrics.py                  # Evaluation suite (5 metrics, reproducible)
+├── backend/
+│   ├── api/
+│   │   └── app.py               # FastAPI routes (20+ endpoints, SSE streaming)
+│   ├── agents/
+│   │   ├── pipeline.py          # LangGraph 4-agent pipeline
+│   │   ├── llm_router.py        # Multi-provider LLM routing + fallback chains
+│   │   ├── rag.py                # Hybrid RAG engine (global + deep chat)
+│   │   └── guardrails.py         # Schema, score, grounding validators
+│   ├── ml/
+│   │   ├── pdf_indexer.py        # PDF extraction + hybrid retrieval
+│   │   ├── embeddings.py         # ChromaDB embedding pipeline
+│   │   ├── clustering.py         # UMAP + HDBSCAN
+│   │   └── velocity.py           # GitHub + citation velocity
+│   ├── ingestion/
+│   │   ├── scraper.py            # ArXiv scraper
+│   │   └── models.py             # SQLAlchemy models
+│   ├── config/
+│   │   └── settings.py           # Pydantic settings (all tunables)
+│   ├── hype_model.py              # Sentinel FastAPI server (port 8001)
+│   ├── main.py                    # Uvicorn entrypoint (port 8000)
+│   ├── scheduler.py                # APScheduler background pipeline
+│   ├── bulk.py                     # Parallel batch analyzer
+│   ├── metrics.py                  # Evaluation suite (5 metrics, reproducible)
+│   └── req.txt                     # Python dependencies
+├── diagrams/                       # Architecture diagram sources + exports
 └── frontend/
     └── src/
         ├── Today.jsx           # Main feed
@@ -560,20 +563,21 @@ Every other agent in this system has a fallback chain, because a slightly-worse 
 
 ```bash
 # 1. Backend
+cd backend
 pip install -r req.txt
 python main.py                          # port 8000
 
-# 2. Sentinel (separate terminal)
+# 2. Sentinel (separate terminal, from backend/)
 python hype_model.py                    # port 8001
 
-# 3. Ingest + analyze papers
+# 3. Ingest + analyze papers (from backend/)
 python bulk.py --limit 50 --concurrency 3
 
-# 4. Frontend
+# 4. Frontend (separate terminal, from repo root)
 cd frontend && npm install && npm run dev   # port 5173
 ```
 
-Required `.env`:
+Required `backend/.env`:
 ```
 GROQ_API_KEY=...
 HF_API_KEY=...
@@ -585,7 +589,7 @@ GITHUB_TOKEN=...     # optional, for velocity scoring
 
 ## Evaluation
 
-Run the full metrics suite:
+Run the full metrics suite (from `backend/`):
 ```bash
 python metrics.py
 ```
